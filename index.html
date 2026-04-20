@@ -291,7 +291,7 @@ const HAND_TOTAL = 11;
 
 // Predkolo: Don & Stella play one extra match (doesn't count for them, counts for opponents)
 const PREDKOLO = [
-  {table:1, t1:["Don","Stella"], t2:["Ante","Cvita"], t1NoPoints:true}
+  {table:1, t1:["Don","Stella"], t2:["Ante","Cvita"], t2NoPoints:true}
 ];
 
 const SCHEDULE = [
@@ -470,7 +470,7 @@ function calcStats() {
     const ms = state['pk']?.[mi];
     if (!ms) return;
     // t1NoPoints: t1 (Don & Stella) don't earn points; t2 (opponents) do
-    accumulateMatch(stats, ms, m, !m.t1NoPoints, true);
+    accumulateMatch(stats, ms, m, true, !m.t2NoPoints);
   });
 
   SCHEDULE.forEach((rd, ri) => {
@@ -534,7 +534,7 @@ function renderMatch(ri, m, mi) {
   if (tp) {
     const winner = tp.a > 0 ? m.t1.join(' & ') : m.t2.join(' & ');
     const pts = Math.max(tp.a, tp.b);
-    const isNoPointsWinner = m.t1NoPoints && tp.a > 0;
+    const isNoPointsWinner = m.t2NoPoints && tp.b > 0;
     ptsBadge = isNoPointsWinner
       ? `<span class="match-pts-badge pts-none">bez bodova — ${winner}</span>`
       : `<span class="match-pts-badge pts-win">+${pts} bod — ${winner}</span>`;
@@ -549,16 +549,16 @@ function renderMatch(ri, m, mi) {
     ? `<button class="add-game-btn" onclick="addGame('${ri}',${mi})">+ Dodaj partiju ${ms.games.length + 1}</button>`
     : '';
 
-  const noPtsNotice = m.t1NoPoints
-    ? `<div class="no-pts-notice">† bodovi se ne broje za ${m.t1.join(' & ')}</div>`
+  const noPtsNotice = m.t2NoPoints
+    ? `<div class="no-pts-notice">† bodovi se ne broje za ${m.t2.join(' & ')}</div>`
     : '';
 
   return `<div class="match-block">
     <div class="match-top">
       <div class="table-badge">Stol ${m.table}</div>
-      <div class="team-pill${m.t1NoPoints ? ' no-pts' : ''}">${m.t1.join('<br>')}</div>
+      <div class="team-pill">${m.t1.join('<br>')}</div>
       <div class="vs-dot">VS</div>
-      <div class="team-pill">${m.t2.join('<br>')}</div>
+      <div class="team-pill${m.t2NoPoints ? ' no-pts' : ''}">${m.t2.join('<br>')}</div>
     </div>
     ${noPtsNotice}
     ${summaryRow}
