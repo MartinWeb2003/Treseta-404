@@ -233,6 +233,51 @@
   }
   .reset-btn:hover { border-color: var(--red-card); color: #e57373; background: rgba(139,26,26,0.1); }
 
+  /* SEARCH */
+  .search-panel {
+    margin: 0 12px 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .search-select {
+    flex: 1; min-width: 100px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--cream);
+    font-family: 'Libre Baskerville', serif;
+    font-size: 0.82rem;
+    padding: 7px 10px;
+    cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+  }
+  .search-select option { background: #1a3a24; color: var(--cream); }
+  .search-select:focus { outline: none; border-color: var(--gold); background: rgba(201,168,76,0.07); }
+  .search-vs-label { font-family: 'Cinzel Decorative', serif; font-size: 0.58rem; color: var(--gold); opacity: 0.6; white-space: nowrap; }
+  .search-btn {
+    background: rgba(201,168,76,0.12); border: 1px solid var(--gold-dim);
+    border-radius: 6px; color: var(--gold);
+    font-family: 'Cinzel Decorative', serif; font-size: 0.65rem;
+    letter-spacing: 0.1em; padding: 8px 16px; cursor: pointer;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .search-btn:hover { background: rgba(201,168,76,0.22); border-color: var(--gold); }
+  .search-msg { font-size: 0.7rem; color: var(--red-light); font-style: italic; width: 100%; text-align: center; }
+  @keyframes flashHighlight {
+    0%   { background: rgba(201,168,76,0.28); box-shadow: 0 0 0 2px var(--gold); }
+    100% { background: rgba(201,168,76,0.08); box-shadow: none; }
+  }
+  .match-block.highlighted {
+    background: rgba(201,168,76,0.08);
+    animation: flashHighlight 1.2s ease forwards;
+  }
+
   input[type=number]::-webkit-inner-spin-button,
   input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   input[type=number] { -moz-appearance: textfield; }
@@ -247,6 +292,19 @@
   <div class="divider"></div>
   <div id="sync-status" style="margin-top:10px;font-size:0.65rem;font-family:'Cinzel Decorative',serif;letter-spacing:0.1em;color:#aaa;">○ Učitavanje…</div>
 </header>
+
+<div class="section-title">♦ Traži Meč ♦</div>
+<div class="search-panel">
+  <select id="player1-select" class="search-select">
+    <option value="">— Igrač 1 —</option>
+  </select>
+  <span class="search-vs-label">VS</span>
+  <select id="player2-select" class="search-select">
+    <option value="">— Igrač 2 —</option>
+  </select>
+  <button class="search-btn" onclick="searchMatch()">Pronađi ▸</button>
+  <div id="search-msg" class="search-msg" style="display:none"></div>
+</div>
 
 <div class="section-title">♠ Ljestvica Igrača ♠</div>
 <div class="leaderboard">
@@ -553,7 +611,7 @@ function renderMatch(ri, m, mi) {
     ? `<div class="no-pts-notice">† bodovi se ne broje za ${m.t2.join(' & ')}</div>`
     : '';
 
-  return `<div class="match-block">
+  return `<div class="match-block" data-ri="${ri}" data-mi="${mi}">
     <div class="match-top">
       <div class="table-badge">Stol ${m.table}</div>
       <div class="team-pill">${m.t1.join('<br>')}</div>
@@ -662,12 +720,63 @@ function resetAll() {
 
 function renderAll() { renderLeaderboard(); renderRounds(); }
 
+function initSearch() {
+  const sel1 = document.getElementById('player1-select');
+  const sel2 = document.getElementById('player2-select');
+  PLAYERS.forEach(p => {
+    sel1.innerHTML += `<option value="${p}">${p}</option>`;
+    sel2.innerHTML += `<option value="${p}">${p}</option>`;
+  });
+}
+
+function matchHasBothPlayers(m, p1, p2) {
+  const all = [...m.t1, ...m.t2];
+  return all.includes(p1) && all.includes(p2);
+}
+
+function showSearchMsg(msg) {
+  const el = document.getElementById('search-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+function scrollToMatch(ri, mi) {
+  document.getElementById('search-msg').style.display = 'none';
+  document.querySelectorAll('.match-block.highlighted').forEach(el => el.classList.remove('highlighted'));
+  const el = document.querySelector(`.match-block[data-ri="${ri}"][data-mi="${mi}"]`);
+  if (!el) return;
+  el.classList.add('highlighted');
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => el.classList.remove('highlighted'), 3000);
+}
+
+function searchMatch() {
+  const p1 = document.getElementById('player1-select').value;
+  const p2 = document.getElementById('player2-select').value;
+  if (!p1 || !p2) { showSearchMsg('Odaberi oba igrača.'); return; }
+  if (p1 === p2)  { showSearchMsg('Odaberi dva različita igrača.'); return; }
+
+  for (let mi = 0; mi < PREDKOLO.length; mi++) {
+    if (matchHasBothPlayers(PREDKOLO[mi], p1, p2)) { scrollToMatch('pk', mi); return; }
+  }
+  for (let ri = 0; ri < SCHEDULE.length; ri++) {
+    for (let mi = 0; mi < SCHEDULE[ri].matches.length; mi++) {
+      if (matchHasBothPlayers(SCHEDULE[ri].matches[mi], p1, p2)) { scrollToMatch(ri, mi); return; }
+    }
+  }
+  showSearchMsg(`${p1} i ${p2} ne igraju zajedno u ovom turniru.`);
+}
+
 window.setHand    = setHand;
 window.addHand    = addHand;
 window.removeHand = removeHand;
 window.addGame    = addGame;
 window.resetAll   = resetAll;
+window.searchMatch = searchMatch;
 
+initSearch();
 loadState();
 </script>
 </body>
