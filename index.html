@@ -112,6 +112,10 @@
     overflow: hidden;
     box-shadow: 0 3px 16px rgba(0,0,0,0.4);
   }
+  .round-card.predkolo-card {
+    border-color: rgba(201,168,76,0.12);
+    opacity: 0.85;
+  }
   .round-header {
     background: linear-gradient(135deg, rgba(201,168,76,0.18), rgba(201,168,76,0.05));
     border-bottom: 1px solid var(--border);
@@ -129,7 +133,18 @@
     flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
     border-radius: 6px; padding: 6px 8px; text-align: center; font-size: 0.78rem; font-weight: 700; color: var(--cream); line-height: 1.3;
   }
+  .team-pill.no-pts { opacity: 0.55; border-style: dashed; }
   .vs-dot { font-family: 'Cinzel Decorative', serif; font-size: 0.55rem; color: var(--gold); opacity: 0.6; }
+
+  .no-pts-notice {
+    font-size: 0.6rem;
+    color: var(--gold);
+    opacity: 0.6;
+    font-style: italic;
+    text-align: center;
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
 
   .match-summary { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
   .game-score-badge {
@@ -218,7 +233,6 @@
   }
   .reset-btn:hover { border-color: var(--red-card); color: #e57373; background: rgba(139,26,26,0.1); }
 
-  /* hide number input arrows */
   input[type=number]::-webkit-inner-spin-button,
   input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   input[type=number] { -moz-appearance: textfield; }
@@ -269,32 +283,69 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
-const dbRef = ref(db, 'tournament');
+const dbRef = ref(db, 'tournament2');
 
-const PLAYERS = ["Pere","Don","Martin","Antea","Mare","Stella","Ante","Naka","Cvita","Tomo","Batur","Matea"];
+const PLAYERS = ["Batur","Mare","Martin","Antea","Pere","Naka","Ante","Stella","Cvita","Don"];
 const WIN_TARGET = 41;
 const HAND_TOTAL = 11;
 
+// Predkolo: Don & Stella play one extra match (doesn't count for them, counts for opponents)
+const PREDKOLO = [
+  {table:1, t1:["Don","Stella"], t2:["Ante","Cvita"], t1NoPoints:true}
+];
+
 const SCHEDULE = [
-  {round:1,matches:[{table:1,t1:["Pere","Don"],t2:["Antea","Martin"]},{table:2,t1:["Mare","Stella"],t2:["Ante","Naka"]},{table:3,t1:["Cvita","Tomo"],t2:["Batur","Matea"]}]},
-  {round:2,matches:[{table:1,t1:["Pere","Martin"],t2:["Don","Stella"]},{table:2,t1:["Antea","Naka"],t2:["Mare","Tomo"]},{table:3,t1:["Ante","Matea"],t2:["Cvita","Batur"]}]},
-  {round:3,matches:[{table:1,t1:["Pere","Stella"],t2:["Martin","Naka"]},{table:2,t1:["Don","Tomo"],t2:["Antea","Matea"]},{table:3,t1:["Mare","Batur"],t2:["Ante","Cvita"]}]},
-  {round:4,matches:[{table:1,t1:["Pere","Naka"],t2:["Stella","Tomo"]},{table:2,t1:["Martin","Matea"],t2:["Don","Batur"]},{table:3,t1:["Antea","Cvita"],t2:["Mare","Ante"]}]},
-  {round:5,matches:[{table:1,t1:["Pere","Tomo"],t2:["Naka","Matea"]},{table:2,t1:["Stella","Batur"],t2:["Martin","Cvita"]},{table:3,t1:["Don","Ante"],t2:["Antea","Mare"]}]},
-  {round:6,matches:[{table:1,t1:["Pere","Matea"],t2:["Tomo","Batur"]},{table:2,t1:["Naka","Cvita"],t2:["Stella","Ante"]},{table:3,t1:["Martin","Mare"],t2:["Don","Antea"]}]},
-  {round:7,matches:[{table:1,t1:["Pere","Batur"],t2:["Matea","Cvita"]},{table:2,t1:["Tomo","Ante"],t2:["Naka","Mare"]},{table:3,t1:["Stella","Antea"],t2:["Martin","Don"]}]},
-  {round:8,matches:[{table:1,t1:["Pere","Cvita"],t2:["Batur","Ante"]},{table:2,t1:["Matea","Mare"],t2:["Tomo","Antea"]},{table:3,t1:["Naka","Don"],t2:["Stella","Martin"]}]},
-  {round:9,matches:[{table:1,t1:["Pere","Ante"],t2:["Cvita","Mare"]},{table:2,t1:["Batur","Antea"],t2:["Matea","Don"]},{table:3,t1:["Tomo","Martin"],t2:["Naka","Stella"]}]},
-  {round:10,matches:[{table:1,t1:["Pere","Mare"],t2:["Ante","Antea"]},{table:2,t1:["Cvita","Don"],t2:["Batur","Martin"]},{table:3,t1:["Matea","Stella"],t2:["Tomo","Naka"]}]},
-  {round:11,matches:[{table:1,t1:["Pere","Antea"],t2:["Mare","Don"]},{table:2,t1:["Ante","Martin"],t2:["Cvita","Stella"]},{table:3,t1:["Batur","Naka"],t2:["Matea","Tomo"]}]},
+  {round:1, matches:[
+    {table:1, t1:["Batur","Mare"],   t2:["Martin","Antea"]},
+    {table:2, t1:["Pere","Naka"],    t2:["Ante","Stella"]}
+  ]},
+  {round:2, matches:[
+    {table:1, t1:["Cvita","Don"],    t2:["Batur","Antea"]},
+    {table:2, t1:["Mare","Naka"],    t2:["Martin","Stella"]}
+  ]},
+  {round:3, matches:[
+    {table:1, t1:["Pere","Don"],     t2:["Ante","Cvita"]},
+    {table:2, t1:["Batur","Naka"],   t2:["Antea","Stella"]}
+  ]},
+  {round:4, matches:[
+    {table:1, t1:["Mare","Don"],     t2:["Martin","Cvita"]},
+    {table:2, t1:["Pere","Ante"],    t2:["Batur","Stella"]}
+  ]},
+  {round:5, matches:[
+    {table:1, t1:["Naka","Don"],     t2:["Antea","Cvita"]},
+    {table:2, t1:["Mare","Ante"],    t2:["Martin","Pere"]}
+  ]},
+  {round:6, matches:[
+    {table:1, t1:["Batur","Don"],    t2:["Stella","Cvita"]},
+    {table:2, t1:["Naka","Ante"],    t2:["Antea","Pere"]}
+  ]},
+  {round:7, matches:[
+    {table:1, t1:["Mare","Martin"],  t2:["Batur","Cvita"]},
+    {table:2, t1:["Don","Ante"],     t2:["Stella","Pere"]}
+  ]},
+  {round:8, matches:[
+    {table:1, t1:["Naka","Martin"],  t2:["Antea","Mare"]},
+    {table:2, t1:["Batur","Ante"],   t2:["Cvita","Pere"]}
+  ]},
+  {round:9, matches:[
+    {table:1, t1:["Don","Martin"],   t2:["Stella","Mare"]},
+    {table:2, t1:["Naka","Antea"],   t2:["Batur","Pere"]}
+  ]},
+  {round:10, matches:[
+    {table:1, t1:["Ante","Martin"],  t2:["Cvita","Mare"]},
+    {table:2, t1:["Don","Antea"],    t2:["Stella","Naka"]}
+  ]},
+  {round:11, matches:[
+    {table:1, t1:["Batur","Martin"], t2:["Pere","Mare"]},
+    {table:2, t1:["Ante","Antea"],   t2:["Cvita","Naka"]}
+  ]},
 ];
 
 let state = {};
 let syncTimer = null;
 let isSyncing = false;
-let isRemoteUpdate = false; // prevent feedback loop
+let isRemoteUpdate = false;
 
-// --- Status indicator ---------------------------------------------------------
 function setStatus(type, msg) {
   const el = document.getElementById('sync-status');
   if (!el) return;
@@ -304,17 +355,15 @@ function setStatus(type, msg) {
   el.textContent = icons[type] + ' ' + msg;
 }
 
-// --- localStorage cache -------------------------------------------------------
 function cacheLocal() {
-  try { localStorage.setItem('treseta_v4', JSON.stringify(state)); } catch(e) {}
+  try { localStorage.setItem('treseta_v5', JSON.stringify(state)); } catch(e) {}
 }
 function loadLocal() {
-  try { const s = localStorage.getItem('treseta_v4'); if (s) state = JSON.parse(s); } catch(e) {}
+  try { const s = localStorage.getItem('treseta_v5'); if (s) state = JSON.parse(s); } catch(e) {}
 }
 
-// --- Firebase: real-time listener (auto-updates all open tabs/devices) --------
 function loadState() {
-  loadLocal();   // instant local paint
+  loadLocal();
   renderAll();
   setStatus('saving', 'Spajanje…');
 
@@ -328,16 +377,14 @@ function loadState() {
       isRemoteUpdate = false;
     }
     setStatus('ok', 'Sinkronizirano');
-  }, (error) => {
+  }, () => {
     setStatus('error', 'Greška pri spajanju — lokalni podaci');
   });
 }
 
-// --- Firebase: save (debounced 1.5s) -----------------------------------------
 function saveState() {
   cacheLocal();
-  if (isRemoteUpdate) return; // don't push back what we just received
-
+  if (isRemoteUpdate) return;
   clearTimeout(syncTimer);
   setStatus('saving', 'Čekanje…');
   syncTimer = setTimeout(pushToCloud, 1500);
@@ -399,29 +446,41 @@ function matchTournamentPoints(ms) {
   return null;
 }
 
+function accumulateMatch(stats, ms, m, countT1, countT2) {
+  const tp = matchTournamentPoints(ms);
+  if (!tp) return;
+  const { wa, wb } = matchGamesWon(ms);
+  for (const g of ms.games) {
+    const w = gameWinner(g);
+    if (!w) continue;
+    const { a, b } = calcGameTotals(g);
+    const d = a - b;
+    if (countT1) m.t1.forEach(p => { stats[p].diff += d; });
+    if (countT2) m.t2.forEach(p => { stats[p].diff -= d; });
+  }
+  if (countT1) m.t1.forEach(p => { stats[p].pts += tp.a; if (tp.a > 0) stats[p].w++; else stats[p].l++; stats[p].g += wa; });
+  if (countT2) m.t2.forEach(p => { stats[p].pts += tp.b; if (tp.b > 0) stats[p].w++; else stats[p].l++; stats[p].g += wb; });
+}
+
 function calcStats() {
   const stats = {};
   PLAYERS.forEach(p => stats[p] = { pts: 0, w: 0, l: 0, g: 0, diff: 0 });
+
+  PREDKOLO.forEach((m, mi) => {
+    const ms = state['pk']?.[mi];
+    if (!ms) return;
+    // t1NoPoints: t1 (Don & Stella) don't earn points; t2 (opponents) do
+    accumulateMatch(stats, ms, m, !m.t1NoPoints, true);
+  });
+
   SCHEDULE.forEach((rd, ri) => {
     rd.matches.forEach((m, mi) => {
       const ms = state[ri]?.[mi];
       if (!ms) return;
-      const tp = matchTournamentPoints(ms);
-      if (!tp) return;
-      const { wa, wb } = matchGamesWon(ms);
-      // Accumulate point diff from every completed game
-      for (const g of ms.games) {
-        const w = gameWinner(g);
-        if (!w) continue;
-        const { a, b } = calcGameTotals(g);
-        const d = a - b; // positive = team a won
-        m.t1.forEach(p => { stats[p].diff += d; });
-        m.t2.forEach(p => { stats[p].diff -= d; });
-      }
-      m.t1.forEach(p => { stats[p].pts += tp.a; if (tp.a > 0) stats[p].w++; else stats[p].l++; stats[p].g += wa; });
-      m.t2.forEach(p => { stats[p].pts += tp.b; if (tp.b > 0) stats[p].w++; else stats[p].l++; stats[p].g += wb; });
+      accumulateMatch(stats, ms, m, true, true);
     });
   });
+
   return stats;
 }
 
@@ -446,15 +505,26 @@ function renderLeaderboard() {
 }
 
 function renderRounds() {
-  document.getElementById('rounds-container').innerHTML = SCHEDULE.map((rd, ri) =>
+  let html = '';
+
+  if (PREDKOLO.length > 0) {
+    html += `<div class="round-card predkolo-card">
+      <div class="round-header"><div class="round-title">◈ PREDKOLO</div></div>
+      ${PREDKOLO.map((m, mi) => renderMatch('pk', m, mi)).join('')}
+    </div>`;
+  }
+
+  html += SCHEDULE.map((rd, ri) =>
     `<div class="round-card">
       <div class="round-header"><div class="round-title">♦ ${rd.round}. KOLO</div></div>
-      ${rd.matches.map((m, mi) => renderMatch(rd, ri, m, mi)).join('')}
+      ${rd.matches.map((m, mi) => renderMatch(ri, m, mi)).join('')}
     </div>`
   ).join('');
+
+  document.getElementById('rounds-container').innerHTML = html;
 }
 
-function renderMatch(rd, ri, m, mi) {
+function renderMatch(ri, m, mi) {
   const ms = getMatchState(ri, mi);
   const { wa, wb } = matchGamesWon(ms);
   const tp = matchTournamentPoints(ms);
@@ -464,7 +534,10 @@ function renderMatch(rd, ri, m, mi) {
   if (tp) {
     const winner = tp.a > 0 ? m.t1.join(' & ') : m.t2.join(' & ');
     const pts = Math.max(tp.a, tp.b);
-    ptsBadge = `<span class="match-pts-badge pts-win">+${pts} bod — ${winner}</span>`;
+    const isNoPointsWinner = m.t1NoPoints && tp.a > 0;
+    ptsBadge = isNoPointsWinner
+      ? `<span class="match-pts-badge pts-none">bez bodova — ${winner}</span>`
+      : `<span class="match-pts-badge pts-win">+${pts} bod — ${winner}</span>`;
   }
   const summaryRow = (gsBadge || ptsBadge) ? `<div class="match-summary">${gsBadge}${ptsBadge}</div>` : '';
 
@@ -473,16 +546,21 @@ function renderMatch(rd, ri, m, mi) {
 
   const gamesHtml = ms.games.map((g, gi) => renderGame(ri, mi, g, gi, m)).join('');
   const addGameBtn = canAddGame
-    ? `<button class="add-game-btn" onclick="addGame(${ri},${mi})">+ Dodaj partiju ${ms.games.length + 1}</button>`
+    ? `<button class="add-game-btn" onclick="addGame('${ri}',${mi})">+ Dodaj partiju ${ms.games.length + 1}</button>`
+    : '';
+
+  const noPtsNotice = m.t1NoPoints
+    ? `<div class="no-pts-notice">† bodovi se ne broje za ${m.t1.join(' & ')}</div>`
     : '';
 
   return `<div class="match-block">
     <div class="match-top">
       <div class="table-badge">Stol ${m.table}</div>
-      <div class="team-pill">${m.t1.join('<br>')}</div>
+      <div class="team-pill${m.t1NoPoints ? ' no-pts' : ''}">${m.t1.join('<br>')}</div>
       <div class="vs-dot">VS</div>
       <div class="team-pill">${m.t2.join('<br>')}</div>
     </div>
+    ${noPtsNotice}
     ${summaryRow}
     <div class="games-list">
       ${gamesHtml}
@@ -503,16 +581,15 @@ function renderGame(ri, mi, game, gi, m) {
       <div class="hand-num">${hi+1}</div>
       <input class="hand-input${invalid?' invalid':''}" type="number" min="0" max="11"
         value="${h.a !== null ? h.a : ''}" placeholder="—"
-        oninput="setHand(${ri},${mi},${gi},${hi},'a',this.value)">
+        oninput="setHand('${ri}',${mi},${gi},${hi},'a',this.value)">
       <div class="hand-sep">:</div>
       <input class="hand-input${invalid?' invalid':''}" type="number" min="0" max="11"
         value="${h.b !== null ? h.b : ''}" placeholder="—"
-        oninput="setHand(${ri},${mi},${gi},${hi},'b',this.value)">
-      <button class="remove-hand-btn" onclick="removeHand(${ri},${mi},${gi},${hi})">×</button>
+        oninput="setHand('${ri}',${mi},${gi},${hi},'b',this.value)">
+      <button class="remove-hand-btn" onclick="removeHand('${ri}',${mi},${gi},${hi})">×</button>
     </div>`;
   }).join('');
 
-  // Point difference bar — only shown when game is complete
   let diffBar = '';
   if (winner) {
     const diff = Math.abs(a - b);
@@ -534,7 +611,7 @@ function renderGame(ri, mi, game, gi, m) {
     </div>
     <div class="hands-table">
       ${handsHtml}
-      ${!winner ? `<button class="add-hand-btn" onclick="addHand(${ri},${mi},${gi})">+ Dodaj ruku</button>` : ''}
+      ${!winner ? `<button class="add-hand-btn" onclick="addHand('${ri}',${mi},${gi})">+ Dodaj ruku</button>` : ''}
     </div>
     <div class="running-bar">
       <div>
@@ -585,14 +662,12 @@ function resetAll() {
 
 function renderAll() { renderLeaderboard(); renderRounds(); }
 
-// Expose to global scope so inline onclick handlers work (modules are scoped)
 window.setHand    = setHand;
 window.addHand    = addHand;
 window.removeHand = removeHand;
 window.addGame    = addGame;
 window.resetAll   = resetAll;
 
-// loadState sets up the Firebase real-time listener
 loadState();
 </script>
 </body>
